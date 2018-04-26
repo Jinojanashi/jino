@@ -17,10 +17,9 @@ class MonsterDetail
 public:
 	MonsterDetail(int);
 	~MonsterDetail();
-	vector<float> *PositionX; //for regist unit x position
-	vector<float> *PositionY; //for regist unit y position
 	int attack(class &);
 	int beAttack(int);
+	bool isDead();
 	void show();
 };
 
@@ -70,7 +69,14 @@ int MonsterDetail::attack(class &U)
 //calculate hp
 int MonsterDetail::beAttack(int ATK)
 {
+	int dmg;
+	if (ATK > def)dmg = ATK - def;
+	else dmg = 0;
 
+	hp -= dmg;
+	if (hp <= 0) hp = 0;
+
+	return dmg;
 }
 
 void Unit::show()
@@ -87,15 +93,19 @@ void Unit::show()
 		cout << skillCooldown[i];
 	}
 }
+
 bool MonsterDetail::isDead()
 {
-
+	if (hp == 0) return true;
+	else return false;
 }
 
 MonsterDetail::~MonsterDetail()
 {
-	if (A == true)
-	{
-		delete[] skill;
-	}
+	name = "NULL";
+	type = "NULL";
+	atk = NULL;
+	def = NULL;
+	hpMax = NULL;
+	hp = NULL;
 }

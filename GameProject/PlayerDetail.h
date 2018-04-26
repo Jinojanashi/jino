@@ -3,6 +3,9 @@
 #include <ctime>
 #include <cmath>
 #include <vector>
+#include <cstdlib>
+#include <conio.h>
+#include "item.h"
 
 using namespace std;
 
@@ -21,21 +24,22 @@ class PlayerDetail
 	int def;
 	int hpMax;
 	int hp;
-	int speed;
 	int chooseSkill;
+	bool &keychange;
+	bool &firsttime;
 public:
 	PlayerDetail();
 	~PlayerDetail();
 	vector<float> *PositionX; //for regist unit x position
 	vector<float> *PositionY; //for regist unit y position
-	int attack(Unit &);
+	int attack(class &);
 	int beAttack(int);
-	int heal();
-	int plusmana();
+	int useItem();
 	bool isDead();
 	int ChooseSkill(int);
 	void Cooldown(int);
 	void show();
+	bool checktime(float, vector<float> &, bool &, bool &);
 };
 
 PlayerDetail::PlayerDetail()
@@ -59,6 +63,7 @@ PlayerDetail::PlayerDetail()
 	skillPassive.push_back(50);
 	skillPassive.push_back(150);
 	skillPassive[3] = 0;
+	Item A(2,2);
 	for (int i = 0; i < 3; i++)
 	{
 		string A;
@@ -77,7 +82,7 @@ PlayerDetail::PlayerDetail()
 }
 
 //calculate of hp
-int PlayerDetail::attack(Unit &U)
+int PlayerDetail::attack(class &U)
 {
 	int Atk = 0;
 	if (chooseSkill == 3)
@@ -97,7 +102,44 @@ int PlayerDetail::attack(Unit &U)
 //calculate hp
 int PlayerDetail::beAttack(int ATK)
 {
+	int dmg;
+	if(ATK > def)dmg = ATK - def;
+	else dmg = 0;
 
+	hp -= dmg;
+	if (hp <= 0) hp = 0;
+
+	return dmg;
+}
+//plus hp or mana. 1 for hp and 2 for mana
+int PlayerDetail:useItem()
+{
+	int r = 0;
+	cout << "pls choose item.\n";
+	cin >> r;
+	if (r == 1)
+	{
+		if (num_hp_item > 0)
+		{
+			if(hp+hp_item <= hpMax)hp += hp_item;
+			else hp = hpMax;
+
+			num_hp_item -= 1;
+		}
+		else cout << "can't use";
+	}
+	else if (r == 2)
+	{
+		if (num_mp_item > 0)
+		{
+			if (mana + mp_item <= manaMax) mana += mp_item;
+			else mana = manaMax;
+
+			num_mp_item -= 1;
+		}
+		else cout << "can't use";
+	}
+	else cout << "no data.\n";
 }
 //use for choose skill drop mana and assign to cooldown skill.
 int PlayerDetail::ChooseSkill(int s)
@@ -105,47 +147,69 @@ int PlayerDetail::ChooseSkill(int s)
 	int a = 0;
 	int b = s - 1;
 	chooseSkill = b;
-	if (b == 0 || b == 1 || b == 2)
+	if (mana >= skillMana[b])
 	{
-		if (skillCooldown[b] = skillCooldownMax[b])
+		if (b == 0 || b == 1 || b == 2)
 		{
-			cout << skill[b];
-			a = skillMana[b];
-			mana -= a;
-			skillCooldown[b] = 0;
+			if (skillCooldown[b] = skillCooldownMax[b])
+			{
+				cout << skill[b];
+				a = skillMana[b];
+				mana -= a;
+				skillCooldown[b] = 0;
+			}
+			else
+			{
+				cout << "Can't use skill coz this skill is cooldown. \nPls choose skill again";
+				cin >> chooseSkill;
+			}
 		}
 		else
 		{
-			cout << "Can't use skill coz this skill is cooldown. \nPls choose skill again";
+			cout << "Null \nPls Choose skill again.";
 			cin >> chooseSkill;
 		}
 	}
-	else
-	{
-		cout << "Null \nPls Choose skill again.";
-		cin >> chooseSkill;
-	}
-
+	else cout << "can't use coz you not have mana";
 	chooseSkill = 4;
-	Cooldown(s);
+	Cooldown(b);
 	return mana;
+}
+//use to cheak time to cooldown.
+bool PlayerDetail::checktime(float start, vector<float> &skillCooldownMax, bool &keychange, bool &firsttime) {
+	cout << (clock() - start) / (double)CLOCKS_PER_SEC << endl;
+	if (firsttime) {
+		keychange = false;
+		firsttime = false;
+		return true;
+	}
+	if ((clock() - start) / (double)CLOCKS_PER_SEC>skillCooldownMax) {
+		keychange = true;
+		return true;
+	}
+	else {
+		keychange = false;
+		return false;
+	}
 }
 //use for cooldown skill.
 void PlayerDetail::Cooldown(int d)
 {
-	int *c = new int[1000000000];
-	while (skillCooldown[d] == skillCooldownMax[d])
-	{
-		clock_t start, stop;
-		while ((stop - start) / CLOCKS_PER_SEC == skillCooldownMax[d])
-		{
-			start = clock();
-			for (int i = 0; i < 1000000000; i++) c[i] = i;
-			stop = clock();
-		}
+	char x;
+	bool keychange = true, firsttime = true;
+	int  start;
 
+	srand(time(0));
+
+	while (true) {
+		x = _getch();
+		if (x != '	') 
+		{
+			if (keychange) start = clock();
+			if (checktime(start,skillCooldownMax[d], keychange, firsttime)) skillCooldown[d] = skillCooldownMax[d];
+		}
+		else cout << "skill not declare pls try again later.\n";
 	}
-	delete[] c;
 }
 
 void PlayerDetail::show()
@@ -164,13 +228,15 @@ void PlayerDetail::show()
 }
 bool PlayerDetail::isDead()
 {
-
+	if(hp == 0) return true;
+	else return false;
 }
 
-void PlayerDetail::ClearUnit(bool A)
+void PlayerDetail::~PlayerDetail()
 {
-	if (A == true)
-	{
-		delete[] skill;
-	}
+	skill.clear();
+	skillCooldown.clear();
+	skillCooldownMax.clear();
+	skillMana.clear();
+	skillPassive.clear();
 }
